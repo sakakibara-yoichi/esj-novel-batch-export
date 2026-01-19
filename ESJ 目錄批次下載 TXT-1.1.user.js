@@ -1,0 +1,138 @@
+// ==UserScript==
+// @name         ESJ 目錄批次下載 TXT
+// @namespace    esj-batch-export
+// @version      1.1
+// @description  在小說目錄頁勾選章節並批次下載 TXT
+// @match        https://www.esjzone.cc/detail/*.html
+// @grant        none
+// ==/UserScript==
+
+(async function () {
+    'use strict';
+
+    // ===== 找章節連結（ESJ 目錄頁）=====
+    const chapterLinks = Array.from(document.querySelectorAll('#chapterList a[href*="/forum/"]'))
+        .filter(a => a.textContent.trim().length > 0);
+
+    if (chapterLinks.length === 0) return;
+/* ================= ICON ================= */
+    const icon = document.createElement("div");
+    icon.textContent = "📘";
+    icon.title = "下載章節 TXT";
+    icon.style.position = "fixed";
+    icon.style.right = "20px";
+    icon.style.bottom = "20px";
+    icon.style.zIndex = "9999";
+    icon.style.cursor = "pointer";
+    icon.style.fontSize = "28px";
+    icon.style.background = "#fff";
+    icon.style.border = "1px solid #aaa";
+    icon.style.borderRadius = "50%";
+    icon.style.width = "48px";
+    icon.style.height = "48px";
+    icon.style.display = "flex";
+    icon.style.alignItems = "center";
+    icon.style.justifyContent = "center";
+    icon.style.boxShadow = "0 2px 6px rgba(0,0,0,.3)";
+
+    document.body.appendChild(icon);
+
+    /* ================= PANEL ================= */
+    const panel = document.createElement("div");
+    panel.style.position = "fixed";
+    panel.style.right = "20px";
+    panel.style.bottom = "80px";
+    panel.style.zIndex = "9999";
+    panel.style.background = "#fff";
+    panel.style.border = "1px solid #aaa";
+    panel.style.padding = "10px";
+    panel.style.width = "320px";
+    panel.style.maxHeight = "60vh";
+    panel.style.overflowY = "auto";
+    panel.style.fontSize = "14px";
+    panel.style.display = "none";
+    panel.style.boxShadow = "0 2px 8px rgba(0,0,0,.3)";
+
+    const btn = document.createElement("button");
+    btn.textContent = "📥 下載選取章節";
+    btn.style.width = "100%";
+    btn.style.marginBottom = "8px";
+
+    panel.appendChild(btn);
+    panel.appendChild(document.createElement("hr"));
+
+    const items = [];
+
+    chapterLinks.forEach(link => {
+        const row = document.createElement("div");
+
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+
+        row.appendChild(cb);
+        row.appendChild(document.createTextNode(" " + link.textContent.trim()));
+        panel.appendChild(row);
+
+        items.push({ cb, url: link.href });
+    });
+
+    document.body.appendChild(panel);
+
+    /* ================= TOGGLE ================= */
+    icon.onclick = () => {
+        panel.style.display = panel.style.display === "none" ? "block" : "none";
+    };
+
+    /* ================= DOWNLOAD ================= */
+    async function downloadChapter(url) {
+        const html = await fetch(url).then(r => r.text());
+        const doc = new DOMParser().parseFromString(html, "text/html");
+
+        let title = (doc.title || "未命名章節")
+            .replace(" - ESJ Zone", "")
+            .trim();
+
+        const content = doc.querySelector("div.forum-content.mt-3");
+        if (!content) return;
+
+        content.querySelectorAll("script, style, img").forEach(e => e.remove());
+
+        const body = content.innerText
+            .split("\n")
+            .map(l => l.trim())
+            .filter(Boolean)
+            .join("\n");
+
+        const text = `${title}\n\n${body}`;
+
+        const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+        const blobUrl = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = `${title}.txt`;
+        a.click();
+
+        URL.revokeObjectURL(blobUrl);
+
+        await new Promise(r => setTimeout(r, 800));
+    }
+
+    btn.onclick = async () => {
+        const selected = items.filter(i => i.cb.checked);
+        if (selected.length === 0) {
+            alert("請先選擇章節");
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = "下載中...";
+
+        for (const item of selected) {
+            await downloadChapter(item.url);
+        }
+
+        btn.textContent = "完成 ✅";
+        btn.disabled = false;
+    };
+})();
