@@ -5,6 +5,9 @@
 // @description  在小說目錄頁勾選章節並批次下載 TXT
 // @match        https://www.esjzone.cc/detail/*.html
 // @grant        none
+// @downloadURL https://github.com/sakakibara-yoichi/esj-novel-batch-export/blob/master/ESJ%20%E7%9B%AE%E9%8C%84%E6%89%B9%E6%AC%A1%E4%B8%8B%E8%BC%89%20TXT-1.1.user.js
+// @updateURL https://github.com/sakakibara-yoichi/esj-novel-batch-export/blob/master/ESJ%20%E7%9B%AE%E9%8C%84%E6%89%B9%E6%AC%A1%E4%B8%8B%E8%BC%89%20TXT-1.1.user.js
+
 // ==/UserScript==
 
 (async function () {
