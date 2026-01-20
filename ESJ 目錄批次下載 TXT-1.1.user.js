@@ -61,6 +61,13 @@
     btn.style.width = "100%";
     btn.style.marginBottom = "8px";
 
+    const selectAllBtn = document.createElement("button");
+    selectAllBtn.textContent = "✅ 全選";
+    selectAllBtn.style.width = "100%";
+    selectAllBtn.style.marginBottom = "6px";
+
+    panel.appendChild(selectAllBtn);
+
     panel.appendChild(btn);
     panel.appendChild(document.createElement("hr"));
 
@@ -137,5 +144,17 @@
 
         btn.textContent = "完成 ✅";
         btn.disabled = false;
+    };
+
+    let allSelected = false;
+
+    selectAllBtn.onclick = () => {
+        allSelected = !allSelected;
+
+        items.forEach(item => {
+            item.cb.checked = allSelected;
+        });
+
+        selectAllBtn.textContent = allSelected ? "❌ 取消全選" : "✅ 全選";
     };
 })();
