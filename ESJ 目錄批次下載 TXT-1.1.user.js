@@ -7,6 +7,7 @@
 // @grant        none
 // @downloadURL https://github.com/sakakibara-yoichi/esj-novel-batch-export/blob/master/ESJ%20%E7%9B%AE%E9%8C%84%E6%89%B9%E6%AC%A1%E4%B8%8B%E8%BC%89%20TXT-1.1.user.js
 // @updateURL https://github.com/sakakibara-yoichi/esj-novel-batch-export/blob/master/ESJ%20%E7%9B%AE%E9%8C%84%E6%89%B9%E6%AC%A1%E4%B8%8B%E8%BC%89%20TXT-1.1.user.js
+// @require https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js
 
 // ==/UserScript==
 
@@ -71,6 +72,12 @@
     panel.appendChild(btn);
     panel.appendChild(document.createElement("hr"));
 
+    const zipBtn = document.createElement("button");
+    zipBtn.textContent = "📦 ZIP 壓縮下載";
+    zipBtn.style.width = "100%";
+    zipBtn.style.marginBottom = "8px";
+    
+    panel.insertBefore(zipBtn, btn);
     const items = [];
 
     chapterLinks.forEach(link => {
@@ -128,6 +135,31 @@
         await new Promise(r => setTimeout(r, 800));
     }
 
+    async function fetchChapterText(url) {
+        const html = await fetch(url).then(r => r.text());
+        const doc = new DOMParser().parseFromString(html, "text/html");
+    
+        let title = (doc.title || "未命名章節")
+            .replace(" - ESJ Zone", "")
+            .trim();
+    
+        const content = doc.querySelector("div.forum-content.mt-3");
+        if (!content) return null;
+    
+        content.querySelectorAll("script, style, img").forEach(e => e.remove());
+    
+        const body = content.innerText
+            .split("\n")
+            .map(l => l.trim())
+            .filter(Boolean)
+            .join("\n");
+    
+        return {
+            title,
+            text: `${title}\n\n${body}`
+        };
+    }
+
     btn.onclick = async () => {
         const selected = items.filter(i => i.cb.checked);
         if (selected.length === 0) {
@@ -156,5 +188,46 @@
         });
 
         selectAllBtn.textContent = allSelected ? "❌ 取消全選" : "✅ 全選";
+    };
+
+    zipBtn.onclick = async () => {
+        const selected = items.filter(i => i.cb.checked);
+        if (selected.length === 0) {
+            alert("請先選擇章節");
+            return;
+        }
+    
+        zipBtn.disabled = true;
+        zipBtn.textContent = "📦 打包中...";
+    
+        const zip = new JSZip();
+    
+        let index = 1;
+    
+        for (const item of selected) {
+            const data = await fetchChapterText(item.url);
+            if (!data) continue;
+    
+            const safeTitle = data.title.replace(/[\\/:*?"<>|]/g, "_");
+            const filename = `${String(index).padStart(3, "0")} - ${safeTitle}.txt`;
+    
+            zip.file(filename, data.text);
+            index++;
+    
+            await new Promise(r => setTimeout(r, 500));
+        }
+    
+        const blob = await zip.generateAsync({ type: "blob" });
+        const url = URL.createObjectURL(blob);
+    
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "ESJ_小說章節.zip";
+        a.click();
+    
+        URL.revokeObjectURL(url);
+    
+        zipBtn.textContent = "完成 ✅";
+        zipBtn.disabled = false;
     };
 })();
