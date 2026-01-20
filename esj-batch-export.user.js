@@ -6,8 +6,8 @@
 // @match        https://www.esjzone.cc/detail/*.html
 // @grant        none
 // @require      https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js
-// @downloadURL  https://raw.githubusercontent.com/sakakibara-yoichi/esj-novel-batch-export/master/esj-batch-export.user.js
-// @updateURL    https://raw.githubusercontent.com/sakakibara-yoichi/esj-novel-batch-export/master/esj-batch-export.user.js
+// @downloadURL  https://raw.githubusercontent.com/sakakibara-yoichi/esj-novel-batch-export/master/esj-batch-export.min.user.js
+// @updateURL    https://raw.githubusercontent.com/sakakibara-yoichi/esj-novel-batch-export/master/esj-batch-export.min.user.js
 // ==/UserScript==
 
 
