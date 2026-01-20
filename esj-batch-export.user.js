@@ -99,13 +99,13 @@
     etaText.style.color = "#666";
     etaText.style.marginBottom = "4px";
     etaText.textContent = "剩餘時間：計算中…";
-    
+
     const failText = document.createElement("div");
     failText.style.fontSize = "12px";
     failText.style.color = "#c62828";
     failText.style.marginTop = "6px";
     failText.style.display = "none";
-    
+
 
     const currentTitleText = document.createElement("div");
     currentTitleText.style.fontSize = "12px";
@@ -136,7 +136,7 @@
     progressWrap.insertBefore(currentTitleText, progressText);
     progressWrap.insertBefore(etaText, progressText);
     progressWrap.appendChild(failText);
-    
+
     panel.appendChild(progressWrap);
 
     const items = [];
@@ -206,18 +206,18 @@
 
     function updateETA(done, total, startTime) {
         if (done === 0) return;
-    
+
         const elapsed = (Date.now() - startTime) / 1000; // 秒
         const avg = elapsed / done;
         const remaining = Math.max(0, Math.round(avg * (total - done)));
-    
+
         const min = Math.floor(remaining / 60);
         const sec = remaining % 60;
-    
+
         etaText.textContent =
             `剩餘時間：約 ${min} 分 ${sec} 秒`;
     }
-    
+
 
     /* ================= ZIP 下載（預設） ================= */
     btn.onclick = async () => {
@@ -246,9 +246,9 @@
                 try {
                     const data = await fetchChapterText(item.url);
                     if (!data) throw new Error("內容空白");
-            
+
                     currentTitleText.textContent = "目前章節：" + data.title;
-            
+
                     const safeTitle = data.title.replace(/[\\/:*?"<>|]/g, "_");
                     zip.file(
                         `${String(index).padStart(3, "0")} - ${safeTitle}.txt`,
@@ -258,23 +258,23 @@
                     const name = item.cb.parentNode.textContent.trim();
                     failedChapters.push(name);
                 }
-            
+
                 done++;
                 updateProgress(done, total);
                 updateETA(done, total, startTime);
-            
+
                 index++;
                 await new Promise(r => setTimeout(r, 500));
             }
-            
+
         } else {
             const tasks = selected.map((item, i) => async () => {
                 try {
                     const data = await fetchChapterText(item.url);
                     if (!data) throw new Error("內容空白");
-            
+
                     currentTitleText.textContent = "目前章節：" + data.title;
-            
+
                     return {
                         index: i + 1,
                         title: data.title,
@@ -290,7 +290,7 @@
                     updateETA(done, total, startTime);
                 }
             });
-            
+
 
             const results = await runConcurrent(tasks, MAX_CONCURRENT);
             results.filter(Boolean).forEach(r => {
@@ -320,7 +320,7 @@
             failText.style.display = "block";
             failText.textContent = "✅ 全部章節下載成功";
         }
-        
+
         btn.textContent = "📦 下載選取章節（ZIP）";
         btn.disabled = false;
         currentTitleText.textContent = "目前章節：全部完成 🎉";
