@@ -5,10 +5,13 @@
 // @description  在小說目錄頁勾選章節並直接 ZIP 批次下載 TXT
 // @match        https://www.esjzone.cc/detail/*.html
 // @grant        none
-// @require https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js
-// @downloadURL https://github.com/sakakibara-yoichi/esj-novel-batch-export/blob/master/esj-batch-export.user.js
-// @updateURL   https://github.com/sakakibara-yoichi/esj-novel-batch-export/blob/master/esj-batch-export.user.js
+// @require      https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js
+// @downloadURL  https://raw.githubusercontent.com/sakakibara-yoichi/esj-novel-batch-export/master/esj-batch-export.user.js
+// @updateURL    https://raw.githubusercontent.com/sakakibara-yoichi/esj-novel-batch-export/master/esj-batch-export.user.js
 // ==/UserScript==
+
+
+
 
 (async function () {
     'use strict';
