@@ -1,0 +1,5 @@
+{
+    "scripts": {
+      "build": "terser myscript.user.js -o myscript.min.js --compress --mangle --comments '/^==UserScript==/'"
+    }
+  }

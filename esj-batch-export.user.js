@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ESJ 目錄批次下載 TXT（預設 ZIP）
 // @namespace    esj-batch-export
-// @version      1.3
+// @version      1.4
 // @description  在小說目錄頁勾選章節並直接 ZIP 批次下載 TXT
 // @match        https://www.esjzone.cc/detail/*.html
 // @grant        none
@@ -247,7 +247,8 @@
 
         if (!useConcurrent) {
             let index = 1;
-            for (const item of selected) {
+            for (let index = 0; index < selected.length; index++) {
+                const item = selected[index];
                 try {
                     const data = await fetchChapterText(item.url);
                     if (!data) throw new Error("內容空白");
@@ -256,7 +257,7 @@
 
                     const safeTitle = data.title.replace(/[\\/:*?"<>|]/g, "_");
                     zip.file(
-                        `${String(index).padStart(3, "0")} - ${safeTitle}.txt`,
+                        `${String(index + 1).padStart(3, "0")} - ${safeTitle}.txt`,
                         data.text
                     );
                 } catch (err) {
@@ -268,20 +269,17 @@
                 updateProgress(done, total);
                 updateETA(done, total, startTime);
 
-                index++;
                 await new Promise(r => setTimeout(r, 500));
             }
 
         } else {
-            const tasks = selected.map((item, i) => async () => {
+            const tasks = selected.map((item, idx) => async () => {
                 try {
                     const data = await fetchChapterText(item.url);
                     if (!data) throw new Error("內容空白");
 
-                    currentTitleText.textContent = "目前章節：" + data.title;
-
                     return {
-                        index: i + 1,
+                        index: idx + 1, // 使用目錄順序作為流水號
                         title: data.title,
                         text: data.text
                     };
@@ -296,15 +294,18 @@
                 }
             });
 
-
             const results = await runConcurrent(tasks, MAX_CONCURRENT);
-            results.filter(Boolean).forEach(r => {
-                const safeTitle = r.title.replace(/[\\/:*?"<>|]/g, "_");
-                zip.file(
-                    `${String(r.index).padStart(3, "0")} - ${safeTitle}.txt`,
-                    r.text
-                );
-            });
+            results
+                .map((r, i) => ({ ...r, index: i + 1 }))
+                .filter(Boolean)
+                .sort((a, b) => a.index - b.index)
+                .forEach(r => {
+                    const safeTitle = r.title.replace(/[\\/:*?"<>|]/g, "_");
+                    zip.file(
+                        `${String(r.index).padStart(3, "0")} - ${safeTitle}.txt`,
+                        r.text
+                    );
+                });
         }
 
         const blob = await zip.generateAsync({ type: "blob" });
