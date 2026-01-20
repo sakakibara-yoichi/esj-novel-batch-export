@@ -72,6 +72,22 @@
     panel.appendChild(btn);
     panel.appendChild(document.createElement("hr"));
 
+    const concurrentBox = document.createElement("label");
+    concurrentBox.style.display = "block";
+    concurrentBox.style.marginBottom = "8px";
+    concurrentBox.style.cursor = "pointer";
+    
+    const concurrentCb = document.createElement("input");
+    concurrentCb.type = "checkbox";
+    concurrentCb.style.marginRight = "6px";
+    
+    concurrentBox.appendChild(concurrentCb);
+    concurrentBox.appendChild(
+        document.createTextNode("⚡ 加速模式（併發下載）")
+    );
+    
+    panel.appendChild(concurrentBox);
+
     const zipBtn = document.createElement("button");
     zipBtn.textContent = "📦 ZIP 壓縮下載";
     zipBtn.style.width = "100%";
@@ -160,6 +176,26 @@
         };
     }
 
+    async function runConcurrent(tasks, limit) {
+        const results = [];
+        let index = 0;
+    
+        async function worker() {
+            while (index < tasks.length) {
+                const current = index++;
+                results[current] = await tasks[current]();
+            }
+        }
+    
+        const workers = Array.from(
+            { length: Math.min(limit, tasks.length) },
+            () => worker()
+        );
+    
+        await Promise.all(workers);
+        return results;
+    }
+
     btn.onclick = async () => {
         const selected = items.filter(i => i.cb.checked);
         if (selected.length === 0) {
@@ -202,19 +238,51 @@
     
         const zip = new JSZip();
     
-        let index = 1;
+        const useConcurrent = concurrentCb.checked;
+        const MAX_CONCURRENT = 4; // ← 可自行調整（建議 3~5）
     
-        for (const item of selected) {
-            const data = await fetchChapterText(item.url);
-            if (!data) continue;
+        if (!useConcurrent) {
+            // ===== 原本安全模式（單線）=====
+            let index = 1;
     
-            const safeTitle = data.title.replace(/[\\/:*?"<>|]/g, "_");
-            const filename = `${String(index).padStart(3, "0")} - ${safeTitle}.txt`;
+            for (const item of selected) {
+                const data = await fetchChapterText(item.url);
+                if (!data) continue;
     
-            zip.file(filename, data.text);
-            index++;
+                const safeTitle = data.title.replace(/[\\/:*?"<>|]/g, "_");
+                zip.file(
+                    `${String(index).padStart(3, "0")} - ${safeTitle}.txt`,
+                    data.text
+                );
     
-            await new Promise(r => setTimeout(r, 500));
+                index++;
+                await new Promise(r => setTimeout(r, 500));
+            }
+        } else {
+            // ===== 併發加速模式 =====
+            const tasks = selected.map((item, i) => async () => {
+                const data = await fetchChapterText(item.url);
+                if (!data) return null;
+    
+                return {
+                    index: i + 1,
+                    title: data.title,
+                    text: data.text
+                };
+            });
+    
+            const results = await runConcurrent(tasks, MAX_CONCURRENT);
+    
+            results
+                .filter(Boolean)
+                .sort((a, b) => a.index - b.index)
+                .forEach(r => {
+                    const safeTitle = r.title.replace(/[\\/:*?"<>|]/g, "_");
+                    zip.file(
+                        `${String(r.index).padStart(3, "0")} - ${safeTitle}.txt`,
+                        r.text
+                    );
+                });
         }
     
         const blob = await zip.generateAsync({ type: "blob" });
