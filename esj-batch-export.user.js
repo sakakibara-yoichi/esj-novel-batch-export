@@ -1,11 +1,12 @@
 // ==UserScript==
 // @name         ESJ 目錄批次下載 TXT（預設 ZIP）
 // @namespace    esj-batch-export
-// @version      1.4
+// @version      1.5
 // @description  在小說目錄頁勾選章節並直接 ZIP 批次下載 TXT
 // @match        https://www.esjzone.cc/detail/*.html
 // @grant        none
 // @require      https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js
+// @require      https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.js
 // @downloadURL  https://raw.githubusercontent.com/sakakibara-yoichi/esj-novel-batch-export/master/esj-batch-export.min.user.js
 // @updateURL    https://raw.githubusercontent.com/sakakibara-yoichi/esj-novel-batch-export/master/esj-batch-export.min.user.js
 // ==/UserScript==
@@ -90,6 +91,21 @@
     concurrentBox.appendChild(concurrentCb);
     concurrentBox.appendChild(document.createTextNode("⚡ 加速模式（併發下載）"));
     panel.appendChild(concurrentBox);
+
+    /* ===== 簡轉繁選項 ===== */
+    const convertBox = document.createElement("label");
+    convertBox.style.display = "block";
+    convertBox.style.marginBottom = "8px";
+    convertBox.style.cursor = "pointer";
+
+    const convertCb = document.createElement("input");
+    convertCb.type = "checkbox";
+    convertCb.style.marginRight = "6px";
+
+    convertBox.appendChild(convertCb);
+    convertBox.appendChild(document.createTextNode("🀄 簡體 → 繁體（OpenCC）"));
+    panel.appendChild(convertBox);
+
 
     /* ===== 進度條 ===== */
     const progressWrap = document.createElement("div");
@@ -176,13 +192,21 @@
 
         content.querySelectorAll("script, style, img").forEach(e => e.remove());
 
-        const body = content.innerText
+        let body = content.innerText
             .split("\n")
             .map(l => l.trim())
             .filter(Boolean)
             .join("\n");
 
-        return { title, text: `${title}\n\n${body}` };
+        // 如果有勾選簡轉繁
+        if (convertCb.checked) {
+            body = opencc(body);
+        }
+
+        const finalTitle = convertCb.checked ? opencc(title) : title;
+
+        return { title: finalTitle, text: `${finalTitle}\n\n${body}` };
+
     }
 
     async function runConcurrent(tasks, limit) {
@@ -223,6 +247,8 @@
             `剩餘時間：約 ${min} 分 ${sec} 秒`;
     }
 
+    const opencc = OpenCC.Converter({ from: 'cn', to: 'tw' });
+
 
     /* ================= ZIP 下載（預設） ================= */
     btn.onclick = async () => {
@@ -255,11 +281,15 @@
 
                     currentTitleText.textContent = "目前章節：" + data.title;
 
-                    const safeTitle = data.title.replace(/[\\/:*?"<>|]/g, "_");
+                    const safeTitle = data.title
+                        .replace(/[\\/:*?"<>|]/g, "_")
+                        .trim();
+
                     zip.file(
                         `${String(index + 1).padStart(3, "0")} - ${safeTitle}.txt`,
                         data.text
                     );
+
                 } catch (err) {
                     const name = item.cb.parentNode.textContent.trim();
                     failedChapters.push(name);
@@ -300,11 +330,15 @@
                 .filter(Boolean)
                 .sort((a, b) => a.index - b.index)
                 .forEach(r => {
-                    const safeTitle = r.title.replace(/[\\/:*?"<>|]/g, "_");
+                    const safeTitle = r.title
+                        .replace(/[\\/:*?"<>|]/g, "_")
+                        .trim();
+
                     zip.file(
                         `${String(r.index).padStart(3, "0")} - ${safeTitle}.txt`,
                         r.text
                     );
+
                 });
         }
 
@@ -339,4 +373,6 @@
         items.forEach(i => (i.cb.checked = allSelected));
         selectAllBtn.textContent = allSelected ? "❌ 取消全選" : "✅ 全選";
     };
+
+
 })();
